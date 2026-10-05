@@ -15,8 +15,8 @@ permissions:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
     strategy:
+      fail-fast: false
       matrix:
         service:
           - user-service/user-service
@@ -26,7 +26,6 @@ jobs:
           - inventory-service/inventory-service
           - notification-service/notification-service
           - api-gateway/api-gateway
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -44,8 +43,8 @@ jobs:
 
   docker-and-ecr:
     needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -62,72 +61,46 @@ jobs:
 
       - name: Build and push user-service
         run: |
-          docker build \
-            -t ${{ steps.login-ecr.outputs.registry }}/user-service:latest \
-            ./user-service/user-service
-
-          docker push \
-            ${{ steps.login-ecr.outputs.registry }}/user-service:latest
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/user-service:latest ./user-service/user-service
+          docker push ${{ steps.login-ecr.outputs.registry }}/user-service:latest
 
       - name: Build and push product-service
         run: |
-          docker build \
-            -t ${{ steps.login-ecr.outputs.registry }}/product-service:latest \
-            ./product-service/product-service
-
-          docker push \
-            ${{ steps.login-ecr.outputs.registry }}/product-service:latest
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/product-service:latest ./product-service/product-service
+          docker push ${{ steps.login-ecr.outputs.registry }}/product-service:latest
 
       - name: Build and push order-service
         run: |
-          docker build \
-            -t ${{ steps.login-ecr.outputs.registry }}/order-service:latest \
-            ./order-service/order-service
-
-          docker push \
-            ${{ steps.login-ecr.outputs.registry }}/order-service:latest
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/order-service:latest ./order-service/order-service
+          docker push ${{ steps.login-ecr.outputs.registry }}/order-service:latest
 
       - name: Build and push payment-service
         run: |
-          docker build \
-            -t ${{ steps.login-ecr.outputs.registry }}/payment-service:latest \
-            ./payment-service/payment-service
-
-          docker push \
-            ${{ steps.login-ecr.outputs.registry }}/payment-service:latest
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/payment-service:latest ./payment-service/payment-service
+          docker push ${{ steps.login-ecr.outputs.registry }}/payment-service:latest
 
       - name: Build and push inventory-service
         run: |
-          docker build \
-            -t ${{ steps.login-ecr.outputs.registry }}/inventory-service:latest \
-            ./inventory-service/inventory-service
-
-          docker push \
-            ${{ steps.login-ecr.outputs.registry }}/inventory-service:latest
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/inventory-service:latest ./inventory-service/inventory-service
+          docker push ${{ steps.login-ecr.outputs.registry }}/inventory-service:latest
 
       - name: Build and push notification-service
         run: |
-          docker build \
-            -t ${{ steps.login-ecr.outputs.registry }}/notification-service:latest \
-            ./notification-service/notification-service
-
-          docker push \
-            ${{ steps.login-ecr.outputs.registry }}/notification-service:latest
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/notification-service:latest ./notification-service/notification-service
+          docker push ${{ steps.login-ecr.outputs.registry }}/notification-service:latest
 
       - name: Build and push api-gateway
         run: |
-          docker build \
-            -t ${{ steps.login-ecr.outputs.registry }}/api-gateway:latest \
-            ./api-gateway/api-gateway
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/api-gateway:latest ./api-gateway/api-gateway
+          docker push ${{ steps.login-ecr.outputs.registry }}/api-gateway:latest
 
-          docker push \
-            ${{ steps.login-ecr.outputs.registry }}/api-gateway:latest
-              oidc-debug:
+  oidc-debug:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
-
     steps:
       - name: Debug OIDC token
         uses: github/actions-oidc-debugger@main
+        with:
+          audience: sts.amazonaws.com
