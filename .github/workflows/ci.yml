@@ -1,4 +1,4 @@
-name: CI
+name: CI + Docker + ECR
 
 on:
   push:
@@ -7,6 +7,10 @@ on:
   pull_request:
     branches:
       - main
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   build-and-test:
@@ -37,3 +41,84 @@ jobs:
       - name: Build and test
         working-directory: ${{ matrix.service }}
         run: ./mvnw clean test
+
+  docker-and-ecr:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::051133077781:role/github-actions-ecr-role
+          aws-region: ap-south-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push user-service
+        run: |
+          docker build \
+            -t ${{ steps.login-ecr.outputs.registry }}/user-service:latest \
+            ./user-service/user-service
+
+          docker push \
+            ${{ steps.login-ecr.outputs.registry }}/user-service:latest
+
+      - name: Build and push product-service
+        run: |
+          docker build \
+            -t ${{ steps.login-ecr.outputs.registry }}/product-service:latest \
+            ./product-service/product-service
+
+          docker push \
+            ${{ steps.login-ecr.outputs.registry }}/product-service:latest
+
+      - name: Build and push order-service
+        run: |
+          docker build \
+            -t ${{ steps.login-ecr.outputs.registry }}/order-service:latest \
+            ./order-service/order-service
+
+          docker push \
+            ${{ steps.login-ecr.outputs.registry }}/order-service:latest
+
+      - name: Build and push payment-service
+        run: |
+          docker build \
+            -t ${{ steps.login-ecr.outputs.registry }}/payment-service:latest \
+            ./payment-service/payment-service
+
+          docker push \
+            ${{ steps.login-ecr.outputs.registry }}/payment-service:latest
+
+      - name: Build and push inventory-service
+        run: |
+          docker build \
+            -t ${{ steps.login-ecr.outputs.registry }}/inventory-service:latest \
+            ./inventory-service/inventory-service
+
+          docker push \
+            ${{ steps.login-ecr.outputs.registry }}/inventory-service:latest
+
+      - name: Build and push notification-service
+        run: |
+          docker build \
+            -t ${{ steps.login-ecr.outputs.registry }}/notification-service:latest \
+            ./notification-service/notification-service
+
+          docker push \
+            ${{ steps.login-ecr.outputs.registry }}/notification-service:latest
+
+      - name: Build and push api-gateway
+        run: |
+          docker build \
+            -t ${{ steps.login-ecr.outputs.registry }}/api-gateway:latest \
+            ./api-gateway/api-gateway
+
+          docker push \
+            ${{ steps.login-ecr.outputs.registry }}/api-gateway:latest
