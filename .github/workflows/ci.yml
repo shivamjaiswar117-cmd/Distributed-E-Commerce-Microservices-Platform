@@ -94,7 +94,7 @@ jobs:
           docker build -t ${{ steps.login-ecr.outputs.registry }}/api-gateway:latest ./api-gateway/api-gateway
           docker push ${{ steps.login-ecr.outputs.registry }}/api-gateway:latest
 
-   oidc-debug:
+  oidc-debug:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
