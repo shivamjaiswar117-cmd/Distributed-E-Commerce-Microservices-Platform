@@ -122,3 +122,12 @@ jobs:
 
           docker push \
             ${{ steps.login-ecr.outputs.registry }}/api-gateway:latest
+              oidc-debug:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Debug OIDC token
+        uses: github/actions-oidc-debugger@main
