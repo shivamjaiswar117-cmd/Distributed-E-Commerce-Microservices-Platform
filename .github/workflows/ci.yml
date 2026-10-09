@@ -60,51 +60,71 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and push user-service
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t ${{ steps.login-ecr.outputs.registry }}/user-service:latest ./user-service/user-service
-          docker push ${{ steps.login-ecr.outputs.registry }}/user-service:latest
+          IMAGE="$REGISTRY/user-service"
+          docker build -t "$IMAGE:latest" -t "$IMAGE:$IMAGE_TAG" ./user-service/user-service
+          docker push "$IMAGE:latest"
+          docker push "$IMAGE:$IMAGE_TAG"
 
       - name: Build and push product-service
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t ${{ steps.login-ecr.outputs.registry }}/product-service:latest ./product-service/product-service
-          docker push ${{ steps.login-ecr.outputs.registry }}/product-service:latest
+          IMAGE="$REGISTRY/product-service"
+          docker build -t "$IMAGE:latest" -t "$IMAGE:$IMAGE_TAG" ./product-service/product-service
+          docker push "$IMAGE:latest"
+          docker push "$IMAGE:$IMAGE_TAG"
 
       - name: Build and push order-service
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t ${{ steps.login-ecr.outputs.registry }}/order-service:latest ./order-service/order-service
-          docker push ${{ steps.login-ecr.outputs.registry }}/order-service:latest
+          IMAGE="$REGISTRY/order-service"
+          docker build -t "$IMAGE:latest" -t "$IMAGE:$IMAGE_TAG" ./order-service/order-service
+          docker push "$IMAGE:latest"
+          docker push "$IMAGE:$IMAGE_TAG"
 
       - name: Build and push payment-service
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t ${{ steps.login-ecr.outputs.registry }}/payment-service:latest ./payment-service/payment-service
-          docker push ${{ steps.login-ecr.outputs.registry }}/payment-service:latest
+          IMAGE="$REGISTRY/payment-service"
+          docker build -t "$IMAGE:latest" -t "$IMAGE:$IMAGE_TAG" ./payment-service/payment-service
+          docker push "$IMAGE:latest"
+          docker push "$IMAGE:$IMAGE_TAG"
 
       - name: Build and push inventory-service
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t ${{ steps.login-ecr.outputs.registry }}/inventory-service:latest ./inventory-service/inventory-service
-          docker push ${{ steps.login-ecr.outputs.registry }}/inventory-service:latest
+          IMAGE="$REGISTRY/inventory-service"
+          docker build -t "$IMAGE:latest" -t "$IMAGE:$IMAGE_TAG" ./inventory-service/inventory-service
+          docker push "$IMAGE:latest"
+          docker push "$IMAGE:$IMAGE_TAG"
 
       - name: Build and push notification-service
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t ${{ steps.login-ecr.outputs.registry }}/notification-service:latest ./notification-service/notification-service
-          docker push ${{ steps.login-ecr.outputs.registry }}/notification-service:latest
+          IMAGE="$REGISTRY/notification-service"
+          docker build -t "$IMAGE:latest" -t "$IMAGE:$IMAGE_TAG" ./notification-service/notification-service
+          docker push "$IMAGE:latest"
+          docker push "$IMAGE:$IMAGE_TAG"
 
       - name: Build and push api-gateway
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t ${{ steps.login-ecr.outputs.registry }}/api-gateway:latest ./api-gateway/api-gateway
-          docker push ${{ steps.login-ecr.outputs.registry }}/api-gateway:latest
-
-  oidc-debug:
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Show OIDC claims
-        run: |
-          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r .value)
-          echo "::add-mask::$TOKEN"
-          PAYLOAD=$(echo "$TOKEN" | cut -d. -f2 | tr '_-' '/+')
-          PAD=$(( (4 - ${#PAYLOAD} % 4) % 4 ))
-          PAYLOAD="$PAYLOAD$(printf '%*s' $PAD '' | tr ' ' '=')"
-          echo "$PAYLOAD" | base64 -d | jq '{iss, sub, aud, repository, repository_owner, ref}'
+          IMAGE="$REGISTRY/api-gateway"
+          docker build -t "$IMAGE:latest" -t "$IMAGE:$IMAGE_TAG" ./api-gateway/api-gateway
+          docker push "$IMAGE:latest"
+          docker push "$IMAGE:$IMAGE_TAG"
