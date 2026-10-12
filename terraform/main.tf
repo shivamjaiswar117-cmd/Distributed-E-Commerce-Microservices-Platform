@@ -50,6 +50,10 @@ resource "aws_security_group" "rds" {
       "152.59.107.229/32",
       "152.58.1.241/32"
     ]
+
+    security_groups = [
+      "sg-03384300ee5032d7a"
+    ]
   }
 
   egress {

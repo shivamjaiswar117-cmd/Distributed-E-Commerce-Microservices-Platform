@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: ecommerce
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: api-gateway
+          image: 051133077781.dkr.ecr.ap-south-1.amazonaws.com/api-gateway:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9090
+          env:
+            - name: SPRING_CLOUD_GATEWAY_SERVER_WEBMVC_ROUTES_0_ID
+              value: "user-service"
+            - name: SPRING_CLOUD_GATEWAY_SERVER_WEBMVC_ROUTES_0_URI
+              value: "http://user-service:8081"
+            - name: SPRING_CLOUD_GATEWAY_SERVER_WEBMVC_ROUTES_0_PREDICATES_0
+              value: "Path=/api/users/**"
+            - name: SPRING_CLOUD_GATEWAY_SERVER_WEBMVC_ROUTES_0_FILTERS_0
+              value: "StripPrefix=1"
+
+            - name: SPRING_CLOUD_GATEWAY_SERVER_WEBMVC_ROUTES_1_ID
+              value: "product-service"
+            - name: SPRING_CLOUD_GATEWAY_SERVER_WEBMVC_ROUTES_1_URI
+              value: "http://product-service:8082"
+            - name: SPRING_CLOUD_GATEWAY_SERVER_WEBMVC_ROUTES_1_PREDICATES_0
+              value: "Path=/api/products/**"
+            - name: SPRING_CLOUD_GATEWAY_SERVER_WEBMVC_ROUTES_1_FILTERS_0
+              value: "StripPrefix=1"
+
+            - name: SPRING_CLOUD_GATEWAY_SERVER_WEBMVC_ROUTES_2_ID
+              value: "order-service"
+            - name: SPRING_CLOUD_GATEWAY_SERVER_WEBMVC_ROUTES_2_URI
+              value: "http://order-service:8083"
+            - name: SPRING_CLOUD_GATEWAY_SERVER_WEBMVC_ROUTES_2_PREDICATES_0
+              value: "Path=/api/orders/**"
+            - name: SPRING_CLOUD_GATEWAY_SERVER_WEBMVC_ROUTES_2_FILTERS_0
+              value: "StripPrefix=1"
+
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "384Mi"
+              cpu: "300m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: ecommerce
+spec:
+  selector:
+    app: api-gateway
+  ports:
+    - port: 9090
+      targetPort: 9090
+  type: LoadBalancer

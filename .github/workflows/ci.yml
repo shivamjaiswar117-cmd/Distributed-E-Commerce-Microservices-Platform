@@ -128,3 +128,57 @@ jobs:
           docker build -t "$IMAGE:latest" -t "$IMAGE:$IMAGE_TAG" ./api-gateway/api-gateway
           docker push "$IMAGE:latest"
           docker push "$IMAGE:$IMAGE_TAG"
+
+
+  deploy-eks:
+    needs: docker-and-ecr
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::051133077781:role/github-actions-ecr-role
+          aws-region: ap-south-1
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.36.0
+
+      - name: Configure EKS access
+        run: |
+          aws eks update-kubeconfig --name distributed-ecommerce-cluster --region ap-south-1
+          kubectl get deployments -n ecommerce
+
+      - name: Deploy application images to EKS
+        env:
+          REGISTRY: 051133077781.dkr.ecr.ap-south-1.amazonaws.com
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          kubectl set image deployment/user-service user-service="$REGISTRY/user-service:$IMAGE_TAG" -n ecommerce
+          kubectl set image deployment/product-service product-service="$REGISTRY/product-service:$IMAGE_TAG" -n ecommerce
+          kubectl set image deployment/order-service order-service="$REGISTRY/order-service:$IMAGE_TAG" -n ecommerce
+          kubectl set image deployment/payment-service payment-service="$REGISTRY/payment-service:$IMAGE_TAG" -n ecommerce
+          kubectl set image deployment/inventory-service inventory-service="$REGISTRY/inventory-service:$IMAGE_TAG" -n ecommerce
+          kubectl set image deployment/notification-service notification-service="$REGISTRY/notification-service:$IMAGE_TAG" -n ecommerce
+          kubectl set image deployment/api-gateway api-gateway="$REGISTRY/api-gateway:$IMAGE_TAG" -n ecommerce
+
+      - name: Verify application rollouts
+        run: |
+          set -euo pipefail
+          for deployment in \
+            user-service \
+            product-service \
+            order-service \
+            payment-service \
+            inventory-service \
+            notification-service \
+            api-gateway
+          do
+            kubectl rollout status "deployment/$deployment" -n ecommerce --timeout=5m
+          done
+
+          kubectl get deployments -n ecommerce
