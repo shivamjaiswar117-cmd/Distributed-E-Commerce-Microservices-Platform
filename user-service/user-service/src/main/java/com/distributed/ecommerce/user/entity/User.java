@@ -1,6 +1,7 @@
-   package com.distributed.ecommerce.user.entity;
+package com.distributed.ecommerce.user.entity;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "users")
@@ -13,6 +14,7 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @JsonIgnore
     @Column(nullable = false)
     private String password;
 
@@ -26,8 +28,6 @@ public class User {
         this.password = password;
         this.fullName = fullName;
     }
-
-    // Getters and setters
 
     public Long getId() {
         return id;
@@ -45,6 +45,7 @@ public class User {
         this.email = email;
     }
 
+    @JsonIgnore
     public String getPassword() {
         return password;
     }
