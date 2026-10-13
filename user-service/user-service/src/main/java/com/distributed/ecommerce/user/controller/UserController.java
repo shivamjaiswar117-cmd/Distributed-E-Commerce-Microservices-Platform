@@ -19,6 +19,11 @@ public class UserController {
         return userService.registerUser(user);
     }
 
+    @GetMapping
+public java.util.List<User> getAllUsers() {
+    return userService.getAllUsers();
+}
+
     @PostMapping("/login")
     public ResponseEntity<String> login(@RequestBody LoginRequest request) {
         boolean success = userService.login(request.getEmail(), request.getPassword());

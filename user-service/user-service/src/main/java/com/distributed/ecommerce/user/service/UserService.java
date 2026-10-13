@@ -16,6 +16,10 @@ public class UserService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+    
+    public java.util.List<User> getAllUsers() {
+    return userRepository.findAll();
+}
 
     public User registerUser(User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
