@@ -71,6 +71,28 @@ class OrderServiceTest {
     }
 
     @Test
+void createOrder_shouldPropagateKafkaPublishingFailure() {
+    Order savedOrder = new Order(
+            1L, 2L, 3, new BigDecimal("999.00"), "PENDING");
+    savedOrder.setId(10L);
+
+    when(orderRepository.save(any(Order.class))).thenReturn(savedOrder);
+
+    doThrow(new IllegalStateException("Kafka unavailable"))
+            .when(orderEventProducer)
+            .publishOrderCreatedEvent(any(OrderCreatedEvent.class));
+
+    assertThrows(
+            IllegalStateException.class,
+            () -> orderService.createOrder(inputOrder)
+    );
+
+    verify(orderRepository, times(1)).save(any(Order.class));
+    verify(orderEventProducer, times(1))
+            .publishOrderCreatedEvent(any(OrderCreatedEvent.class));
+}
+
+    @Test
     void getAllOrders_shouldReturnListFromRepository() {
         Order order1 = new Order(1L, 2L, 3, new BigDecimal("999.00"), "PENDING");
         Order order2 = new Order(4L, 5L, 6, new BigDecimal("500.00"), "PENDING");
