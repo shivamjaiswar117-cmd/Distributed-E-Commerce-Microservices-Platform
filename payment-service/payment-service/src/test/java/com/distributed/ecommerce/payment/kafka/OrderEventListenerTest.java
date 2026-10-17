@@ -61,4 +61,27 @@ void handleOrderCreated_shouldSavePaymentWithCorrectData() {
     verify(paymentResultProducer, times(1))
             .publishPaymentResult(any(PaymentResultEvent.class));
 }
+
+@Test
+void handleOrderCreated_shouldReuseExistingPaymentForDuplicateOrder() {
+    String json = "{\"orderId\":42,\"userId\":7,\"productId\":3,\"quantity\":2,\"totalPrice\":50000}";
+
+    ConsumerRecord<String, String> record =
+            new ConsumerRecord<>("order-created", 0, 0L, "key", json);
+
+    Payment existingPayment =
+            new Payment(42L, 7L, new BigDecimal("50000"), "SUCCESS");
+
+    when(paymentRepository.findByOrderId(42L))
+            .thenReturn(Optional.of(existingPayment));
+
+    orderEventListener.handleOrderCreated(record);
+
+    verify(paymentRepository, times(1)).findByOrderId(42L);
+    verify(paymentRepository, times(0)).save(any(Payment.class));
+
+    verify(paymentResultProducer, times(1))
+            .publishPaymentResult(any(PaymentResultEvent.class));
+}
+
 }
