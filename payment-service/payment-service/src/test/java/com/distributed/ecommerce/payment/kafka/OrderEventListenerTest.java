@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
+
 import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -18,6 +19,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.doThrow;
 
 @ExtendWith(MockitoExtension.class)
 class OrderEventListenerTest {
@@ -81,6 +84,28 @@ void handleOrderCreated_shouldReuseExistingPaymentForDuplicateOrder() {
     verify(paymentRepository, times(0)).save(any(Payment.class));
 
     verify(paymentResultProducer, times(1))
+            .publishPaymentResult(any(PaymentResultEvent.class));
+}
+
+ @Test
+void handleOrderCreated_shouldPropagatePaymentSaveFailure() {
+    String json = "{\"orderId\":42,\"userId\":7,\"productId\":3,\"quantity\":2,\"totalPrice\":50000}";
+
+    ConsumerRecord<String, String> record =
+            new ConsumerRecord<>("order-created", 0, 0L, "key", json);
+
+    when(paymentRepository.findByOrderId(42L))
+            .thenReturn(Optional.empty());
+
+    when(paymentRepository.save(any(Payment.class)))
+            .thenThrow(new RuntimeException("Database unavailable"));
+
+    assertThrows(
+            IllegalStateException.class,
+            () -> orderEventListener.handleOrderCreated(record)
+    );
+
+    verify(paymentResultProducer, times(0))
             .publishPaymentResult(any(PaymentResultEvent.class));
 }
 
