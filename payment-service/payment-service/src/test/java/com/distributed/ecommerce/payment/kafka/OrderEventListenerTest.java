@@ -22,17 +22,23 @@ class OrderEventListenerTest {
     @Mock
     private PaymentRepository paymentRepository;
 
+    @Mock
+    private PaymentResultProducer paymentResultProducer;
+
     @InjectMocks
     private OrderEventListener orderEventListener;
 
     @Test
     void handleOrderCreated_shouldSavePaymentWithCorrectData() {
         String json = "{\"orderId\":42,\"userId\":7,\"productId\":3,\"quantity\":2,\"totalPrice\":50000}";
-        ConsumerRecord<String, String> record = new ConsumerRecord<>("order-created", 0, 0L, "key", json);
+        ConsumerRecord<String, String> record =
+                new ConsumerRecord<>("order-created", 0, 0L, "key", json);
 
         orderEventListener.handleOrderCreated(record);
 
-        ArgumentCaptor<Payment> paymentCaptor = ArgumentCaptor.forClass(Payment.class);
+        ArgumentCaptor<Payment> paymentCaptor =
+                ArgumentCaptor.forClass(Payment.class);
+
         verify(paymentRepository, times(1)).save(paymentCaptor.capture());
 
         Payment savedPayment = paymentCaptor.getValue();
@@ -40,5 +46,9 @@ class OrderEventListenerTest {
         assertEquals(7L, savedPayment.getUserId());
         assertEquals(new BigDecimal("50000"), savedPayment.getAmount());
         assertEquals("SUCCESS", savedPayment.getStatus());
+
+        verify(paymentResultProducer, times(1))
+                .publishPaymentResult(
+                        org.mockito.ArgumentMatchers.any(PaymentResultEvent.class));
     }
 }

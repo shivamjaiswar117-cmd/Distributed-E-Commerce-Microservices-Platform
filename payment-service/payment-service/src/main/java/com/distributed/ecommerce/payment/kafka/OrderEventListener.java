@@ -45,9 +45,11 @@ public class OrderEventListener {
 
             paymentResultProducer.publishPaymentResult(result);
 
-        } catch (Exception e) {
-            System.err.println("Failed to process order-created event");
-            e.printStackTrace();
+                } catch (Exception e) {
+            System.err.println(
+                    "Failed to process order-created event: " + record.value());
+            throw new IllegalStateException(
+                    "Payment event processing failed", e);
         }
     }
 }
