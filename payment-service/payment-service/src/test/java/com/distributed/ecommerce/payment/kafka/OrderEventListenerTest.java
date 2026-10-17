@@ -9,12 +9,15 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import java.util.Optional;
 
 import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class OrderEventListenerTest {
@@ -28,27 +31,34 @@ class OrderEventListenerTest {
     @InjectMocks
     private OrderEventListener orderEventListener;
 
-    @Test
-    void handleOrderCreated_shouldSavePaymentWithCorrectData() {
-        String json = "{\"orderId\":42,\"userId\":7,\"productId\":3,\"quantity\":2,\"totalPrice\":50000}";
-        ConsumerRecord<String, String> record =
-                new ConsumerRecord<>("order-created", 0, 0L, "key", json);
+   @Test
+void handleOrderCreated_shouldSavePaymentWithCorrectData() {
+    String json = "{\"orderId\":42,\"userId\":7,\"productId\":3,\"quantity\":2,\"totalPrice\":50000}";
 
-        orderEventListener.handleOrderCreated(record);
+    ConsumerRecord<String, String> record =
+            new ConsumerRecord<>("order-created", 0, 0L, "key", json);
 
-        ArgumentCaptor<Payment> paymentCaptor =
-                ArgumentCaptor.forClass(Payment.class);
+    when(paymentRepository.findByOrderId(42L))
+            .thenReturn(Optional.empty());
 
-        verify(paymentRepository, times(1)).save(paymentCaptor.capture());
+    when(paymentRepository.save(any(Payment.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
 
-        Payment savedPayment = paymentCaptor.getValue();
-        assertEquals(42L, savedPayment.getOrderId());
-        assertEquals(7L, savedPayment.getUserId());
-        assertEquals(new BigDecimal("50000"), savedPayment.getAmount());
-        assertEquals("SUCCESS", savedPayment.getStatus());
+    orderEventListener.handleOrderCreated(record);
 
-        verify(paymentResultProducer, times(1))
-                .publishPaymentResult(
-                        org.mockito.ArgumentMatchers.any(PaymentResultEvent.class));
-    }
+    ArgumentCaptor<Payment> paymentCaptor =
+            ArgumentCaptor.forClass(Payment.class);
+
+    verify(paymentRepository, times(1)).save(paymentCaptor.capture());
+
+    Payment savedPayment = paymentCaptor.getValue();
+
+    assertEquals(42L, savedPayment.getOrderId());
+    assertEquals(7L, savedPayment.getUserId());
+    assertEquals(new BigDecimal("50000"), savedPayment.getAmount());
+    assertEquals("SUCCESS", savedPayment.getStatus());
+
+    verify(paymentResultProducer, times(1))
+            .publishPaymentResult(any(PaymentResultEvent.class));
+}
 }
