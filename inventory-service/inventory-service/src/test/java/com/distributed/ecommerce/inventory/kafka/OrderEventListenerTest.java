@@ -13,8 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -53,9 +52,7 @@ class OrderEventListenerTest {
 
         assertDoesNotThrow(() -> orderEventListener.handleOrderCreated(record));
 
-        org.junit.jupiter.api.Assertions.assertEquals(
-                40, inventory.getAvailableQuantity());
-
+        assertEquals(40, inventory.getAvailableQuantity());
         verify(inventoryRepository).save(inventory);
         verify(processedOrderRepository)
                 .save(argThat(order -> order.getOrderId().equals(1L)));
@@ -98,23 +95,43 @@ class OrderEventListenerTest {
                 IllegalStateException.class,
                 () -> orderEventListener.handleOrderCreated(record));
 
-        org.junit.jupiter.api.Assertions.assertEquals(
-                5, inventory.getAvailableQuantity());
-
+        assertEquals(5, inventory.getAvailableQuantity());
         verify(inventoryRepository, never()).save(any());
         verify(processedOrderRepository, never()).save(any());
     }
 
     @Test
-    void handleOrderCreated_shouldRejectInvalidQuantity() {
+    void handleOrderCreated_shouldRejectZeroQuantity() {
+        assertInvalidEvent(
+                "{\"orderId\":2,\"userId\":1,\"productId\":5,\"quantity\":0,\"totalPrice\":1000}");
+    }
+
+    @Test
+    void handleOrderCreated_shouldRejectNegativeQuantity() {
+        assertInvalidEvent(
+                "{\"orderId\":2,\"userId\":1,\"productId\":5,\"quantity\":-1,\"totalPrice\":1000}");
+    }
+
+    @Test
+    void handleOrderCreated_shouldRejectMissingOrderId() {
+        assertInvalidEvent(
+                "{\"userId\":1,\"productId\":5,\"quantity\":10,\"totalPrice\":1000}");
+    }
+
+    @Test
+    void handleOrderCreated_shouldRejectMissingProductId() {
+        assertInvalidEvent(
+                "{\"orderId\":2,\"userId\":1,\"quantity\":10,\"totalPrice\":1000}");
+    }
+
+    @Test
+    void handleOrderCreated_shouldRejectMalformedJson() {
+        assertInvalidEvent("{invalid-json}");
+    }
+
+    private void assertInvalidEvent(String payload) {
         ConsumerRecord<String, String> invalidRecord =
-                new ConsumerRecord<>(
-                        "order-created",
-                        0,
-                        1L,
-                        null,
-                        "{\"orderId\":2,\"userId\":1,\"productId\":5,\"quantity\":0,\"totalPrice\":1000}"
-                );
+                new ConsumerRecord<>("order-created", 0, 1L, null, payload);
 
         assertThrows(
                 IllegalStateException.class,
