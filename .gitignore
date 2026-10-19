@@ -37,3 +37,24 @@ run-output.txt
 bin/
 
 k8s/secret.yaml
+
+# Java / Maven build output
+**/target/
+
+# Environment secrets
+.env
+.env.*
+
+# Terraform local files and state
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+
+# Local helper / test files
+github-actions-eks-policy.json
+trust-policy.json
+order.json
+pods-status.txt
+project-structure.txt
