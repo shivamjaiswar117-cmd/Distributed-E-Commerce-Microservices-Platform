@@ -1,20 +1,19 @@
-name: CI + Docker + ECR
+﻿name: Java CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 permissions:
-  id-token: write
   contents: read
 
 jobs:
   build-and-test:
+    name: Build and test ${{ matrix.service }}
     runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
@@ -26,6 +25,7 @@ jobs:
           - inventory-service/inventory-service
           - notification-service/notification-service
           - api-gateway/api-gateway
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -39,146 +39,6 @@ jobs:
 
       - name: Build and test
         working-directory: ${{ matrix.service }}
-        run: ./mvnw clean test
-
-  docker-and-ecr:
-    needs: build-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::051133077781:role/github-actions-ecr-role
-          aws-region: ap-south-1
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build and push user-service
-        env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
         run: |
-          IMAGE="$REGISTRY/user-service"
-          docker build -t "$IMAGE:latest" -t "$IMAGE:$IMAGE_TAG" ./user-service/user-service
-          docker push "$IMAGE:latest"
-          docker push "$IMAGE:$IMAGE_TAG"
-
-      - name: Build and push product-service
-        env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          IMAGE="$REGISTRY/product-service"
-          docker build -t "$IMAGE:latest" -t "$IMAGE:$IMAGE_TAG" ./product-service/product-service
-          docker push "$IMAGE:latest"
-          docker push "$IMAGE:$IMAGE_TAG"
-
-      - name: Build and push order-service
-        env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          IMAGE="$REGISTRY/order-service"
-          docker build -t "$IMAGE:latest" -t "$IMAGE:$IMAGE_TAG" ./order-service/order-service
-          docker push "$IMAGE:latest"
-          docker push "$IMAGE:$IMAGE_TAG"
-
-      - name: Build and push payment-service
-        env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          IMAGE="$REGISTRY/payment-service"
-          docker build -t "$IMAGE:latest" -t "$IMAGE:$IMAGE_TAG" ./payment-service/payment-service
-          docker push "$IMAGE:latest"
-          docker push "$IMAGE:$IMAGE_TAG"
-
-      - name: Build and push inventory-service
-        env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          IMAGE="$REGISTRY/inventory-service"
-          docker build -t "$IMAGE:latest" -t "$IMAGE:$IMAGE_TAG" ./inventory-service/inventory-service
-          docker push "$IMAGE:latest"
-          docker push "$IMAGE:$IMAGE_TAG"
-
-      - name: Build and push notification-service
-        env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          IMAGE="$REGISTRY/notification-service"
-          docker build -t "$IMAGE:latest" -t "$IMAGE:$IMAGE_TAG" ./notification-service/notification-service
-          docker push "$IMAGE:latest"
-          docker push "$IMAGE:$IMAGE_TAG"
-
-      - name: Build and push api-gateway
-        env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          IMAGE="$REGISTRY/api-gateway"
-          docker build -t "$IMAGE:latest" -t "$IMAGE:$IMAGE_TAG" ./api-gateway/api-gateway
-          docker push "$IMAGE:latest"
-          docker push "$IMAGE:$IMAGE_TAG"
-
-
-  deploy-eks:
-    needs: docker-and-ecr
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::051133077781:role/github-actions-ecr-role
-          aws-region: ap-south-1
-
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v4
-        with:
-          version: v1.36.0
-
-      - name: Configure EKS access
-        run: |
-          aws eks update-kubeconfig --name distributed-ecommerce-cluster --region ap-south-1
-          kubectl get deployments -n ecommerce
-
-      - name: Deploy application images to EKS
-        env:
-          REGISTRY: 051133077781.dkr.ecr.ap-south-1.amazonaws.com
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-
-          kubectl set image deployment/user-service user-service="$REGISTRY/user-service:$IMAGE_TAG" -n ecommerce
-          kubectl set image deployment/product-service product-service="$REGISTRY/product-service:$IMAGE_TAG" -n ecommerce
-          kubectl set image deployment/order-service order-service="$REGISTRY/order-service:$IMAGE_TAG" -n ecommerce
-          kubectl set image deployment/payment-service payment-service="$REGISTRY/payment-service:$IMAGE_TAG" -n ecommerce
-          kubectl set image deployment/inventory-service inventory-service="$REGISTRY/inventory-service:$IMAGE_TAG" -n ecommerce
-          kubectl set image deployment/notification-service notification-service="$REGISTRY/notification-service:$IMAGE_TAG" -n ecommerce
-          kubectl set image deployment/api-gateway api-gateway="$REGISTRY/api-gateway:$IMAGE_TAG" -n ecommerce
-
-      - name: Verify application rollouts
-        run: |
-          set -euo pipefail
-          for deployment in \
-            user-service \
-            product-service \
-            order-service \
-            payment-service \
-            inventory-service \
-            notification-service \
-            api-gateway
-          do
-            kubectl rollout status "deployment/$deployment" -n ecommerce --timeout=5m
-          done
-
-          kubectl get deployments -n ecommerce
+          chmod +x mvnw
+          ./mvnw --batch-mode clean verify
