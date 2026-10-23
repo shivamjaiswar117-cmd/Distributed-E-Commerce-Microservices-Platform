@@ -25,14 +25,21 @@ public class Order {
     private BigDecimal totalPrice;
 
     @Column(nullable = false)
-    private String status; // e.g. PENDING, CONFIRMED, CANCELLED
+    private String status;
+
+    @Column
+    private String paymentStatus;
+
+    @Column
+    private String inventoryStatus;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
     public Order() {}
 
-    public Order(Long userId, Long productId, Integer quantity, BigDecimal totalPrice, String status) {
+    public Order(Long userId, Long productId, Integer quantity,
+                 BigDecimal totalPrice, String status) {
         this.userId = userId;
         this.productId = productId;
         this.quantity = quantity;
@@ -41,58 +48,35 @@ public class Order {
         this.createdAt = LocalDateTime.now();
     }
 
-    public Long getId() {
-        return id;
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
+
+    public Long getProductId() { return productId; }
+    public void setProductId(Long productId) { this.productId = productId; }
+
+    public Integer getQuantity() { return quantity; }
+    public void setQuantity(Integer quantity) { this.quantity = quantity; }
+
+    public BigDecimal getTotalPrice() { return totalPrice; }
+    public void setTotalPrice(BigDecimal totalPrice) { this.totalPrice = totalPrice; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public String getPaymentStatus() { return paymentStatus; }
+    public void setPaymentStatus(String paymentStatus) {
+        this.paymentStatus = paymentStatus;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public String getInventoryStatus() { return inventoryStatus; }
+    public void setInventoryStatus(String inventoryStatus) {
+        this.inventoryStatus = inventoryStatus;
     }
 
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
-
-    public Long getProductId() {
-        return productId;
-    }
-
-    public void setProductId(Long productId) {
-        this.productId = productId;
-    }
-
-    public Integer getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(Integer quantity) {
-        this.quantity = quantity;
-    }
-
-    public BigDecimal getTotalPrice() {
-        return totalPrice;
-    }
-
-    public void setTotalPrice(BigDecimal totalPrice) {
-        this.totalPrice = totalPrice;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
+    public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }

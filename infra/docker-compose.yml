@@ -27,18 +27,37 @@
     ports:
       - "6379:6379"
 
+  
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    expose:
+      - "3306"
+    volumes:
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+
   user-service:
     build: ../user-service/user-service
     container_name: user-service
     ports:
       - "8081:8081"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://host.docker.internal:3306/distributed_ecommerce_user
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/distributed_ecommerce_user
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
 
     depends_on:
       - kafka
+      - mysql
 
   product-service:
     build: ../product-service/product-service
@@ -46,13 +65,14 @@
     ports:
       - "8082:8082"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://host.docker.internal:3306/distributed_ecommerce_product
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/distributed_ecommerce_product
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     depends_on:
       - kafka
       - redis
+      - mysql
 
   order-service:
     build: ../order-service/order-service
@@ -60,12 +80,13 @@
     ports:
       - "8083:8083"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://host.docker.internal:3306/distributed_ecommerce_order
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/distributed_ecommerce_order
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
       - kafka
+      - mysql
 
   payment-service:
     build: ../payment-service/payment-service
@@ -73,12 +94,13 @@
     ports:
       - "8084:8084"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://host.docker.internal:3306/distributed_ecommerce_payment
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/distributed_ecommerce_payment
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
       - kafka
+      - mysql
 
   inventory-service:
     build: ../inventory-service/inventory-service
@@ -86,12 +108,13 @@
     ports:
       - "8085:8085"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://host.docker.internal:3306/distributed_ecommerce_inventory
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/distributed_ecommerce_inventory
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
       - kafka
+      - mysql
 
   notification-service:
     build: ../notification-service/notification-service
@@ -102,6 +125,7 @@
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
       - kafka
+      - mysql
 
   api-gateway:
     build: ../api-gateway/api-gateway
