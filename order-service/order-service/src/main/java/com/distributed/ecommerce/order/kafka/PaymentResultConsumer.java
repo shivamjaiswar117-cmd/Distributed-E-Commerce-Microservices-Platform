@@ -50,15 +50,11 @@ public class PaymentResultConsumer {
             );
         }
 
-        Order order = orderRepository.findById(event.getOrderId())
+        Order order = orderRepository.findByIdForUpdate(event.getOrderId())
             .orElseThrow(() -> new IllegalStateException(
                 "Order not found: " + event.getOrderId()
             ));
 
-        if ("CANCELLED".equals(order.getStatus())
-                || "CONFIRMED".equals(order.getStatus())) {
-            return;
-        }
 
         order.setPaymentStatus(result);
         updateOrderStatus(order);

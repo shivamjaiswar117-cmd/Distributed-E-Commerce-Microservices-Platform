@@ -1,4 +1,4 @@
-﻿
+
 name: Java CI and Docker Build
 
 on:
@@ -83,7 +83,7 @@ jobs:
           load: true
           tags: local/${{ matrix.image }}:latest
 
-      
+
       - name: Scan Docker image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -95,3 +95,30 @@ jobs:
           ignore-unfixed: true
           exit-code: '0'
 
+
+  frontend-build:
+    name: Build and lint frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
