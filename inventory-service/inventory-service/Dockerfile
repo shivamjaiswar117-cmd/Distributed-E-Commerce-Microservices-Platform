@@ -4,9 +4,9 @@ COPY pom.xml .
 COPY .mvn .mvn
 COPY mvnw .
 RUN chmod +x mvnw
-RUN ./mvnw dependency:go-offline -B
 COPY src ./src
-RUN ./mvnw clean package -DskipTests
+ENV MAVEN_OPTS="-Djava.net.preferIPv4Stack=true"
+RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -Dmaven.wagon.http.retryHandler.count=5 -Dmaven.wagon.httpconnectionManager.ttlSeconds=20 clean package -DskipTests
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app

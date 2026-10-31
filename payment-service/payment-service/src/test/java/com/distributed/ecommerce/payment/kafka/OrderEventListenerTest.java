@@ -109,4 +109,31 @@ void handleOrderCreated_shouldPropagatePaymentSaveFailure() {
             .publishPaymentResult(any(PaymentResultEvent.class));
 }
 
+    @Test
+    void handleOrderCreated_shouldPublishFailureForNonPositiveAmount() {
+        String json = "{\"orderId\":43,\"userId\":7,\"productId\":3,\"quantity\":2,\"totalPrice\":0}";
+        ConsumerRecord<String, String> record =
+                new ConsumerRecord<>("order-created", 0, 0L, "key", json);
+
+        orderEventListener.handleOrderCreated(record);
+
+        verify(paymentRepository, times(0)).save(any(Payment.class));
+        verify(paymentResultProducer, times(1)).publishPaymentResult(
+                org.mockito.ArgumentMatchers.argThat(e ->
+                        e.getOrderId().equals(43L) && "FAILED".equals(e.getStatus())));
+    }
+
+    @Test
+    void handleOrderCreated_shouldPublishFailureWhenUserIsMissing() {
+        String json = "{\"orderId\":44,\"productId\":3,\"quantity\":2,\"totalPrice\":50000}";
+        ConsumerRecord<String, String> record =
+                new ConsumerRecord<>("order-created", 0, 0L, "key", json);
+
+        orderEventListener.handleOrderCreated(record);
+
+        verify(paymentRepository, times(0)).save(any(Payment.class));
+        verify(paymentResultProducer, times(1)).publishPaymentResult(
+                org.mockito.ArgumentMatchers.argThat(e ->
+                        e.getOrderId().equals(44L) && "FAILED".equals(e.getStatus())));
+    }
 }

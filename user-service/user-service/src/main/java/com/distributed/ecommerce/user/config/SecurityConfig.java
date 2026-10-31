@@ -19,11 +19,16 @@ public class SecurityConfig {
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/users/register", "/users/login").permitAll()
-                .requestMatchers(HttpMethod.GET, "/users").permitAll()
-                .anyRequest().authenticated()
-            );
+           .authorizeHttpRequests(auth -> auth
+    .requestMatchers(
+        "/actuator/health",
+        "/actuator/info",
+        "/actuator/prometheus"
+    ).permitAll()
+    .requestMatchers("/users/register", "/users/login").permitAll()
+    .requestMatchers(HttpMethod.GET, "/users").permitAll()
+    .anyRequest().authenticated()
+);
 
         return http.build();
     }

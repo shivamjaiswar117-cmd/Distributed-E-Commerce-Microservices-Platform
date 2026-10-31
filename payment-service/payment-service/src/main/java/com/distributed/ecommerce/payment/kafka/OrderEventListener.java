@@ -29,12 +29,17 @@ public class OrderEventListener {
             OrderCreatedEvent event =
                     jsonMapper.readValue(record.value(), OrderCreatedEvent.class);
 
-            if (event.getOrderId() == null
-                    || event.getUserId() == null
+            if (event.getOrderId() == null) {
+                throw new IllegalArgumentException("Order event must contain orderId");
+            }
+
+            // Simulated gateway: payment is declined when the user or amount is invalid.
+            if (event.getUserId() == null
                     || event.getTotalPrice() == null
-                    || event.getTotalPrice().signum() < 0) {
-                throw new IllegalArgumentException(
-                        "Order event must contain valid orderId, userId and totalPrice");
+                    || event.getTotalPrice().signum() <= 0) {
+                paymentResultProducer.publishPaymentResult(
+                        new PaymentResultEvent(event.getOrderId(), "FAILED"));
+                return;
             }
 
             Payment payment = paymentRepository.findByOrderId(event.getOrderId())
@@ -45,10 +50,8 @@ public class OrderEventListener {
                                     event.getTotalPrice(),
                                     "SUCCESS")));
 
-            PaymentResultEvent result =
-                    new PaymentResultEvent(payment.getOrderId(), payment.getStatus());
-
-            paymentResultProducer.publishPaymentResult(result);
+            paymentResultProducer.publishPaymentResult(
+                    new PaymentResultEvent(payment.getOrderId(), payment.getStatus()));
 
         } catch (Exception e) {
             throw new IllegalStateException(
