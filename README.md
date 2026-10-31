@@ -1,4 +1,4 @@
-﻿# Distributed E-Commerce Microservices Platform
+# Distributed E-Commerce Microservices Platform
 
 A distributed e-commerce backend built using Java, Spring Boot, REST APIs, Apache Kafka, Redis, MySQL, Docker, Kubernetes, Terraform, and AWS.
 
@@ -186,7 +186,7 @@ foreach ($service in $services) {
 
 ## Infrastructure
 
-The repository also includes Kubernetes manifests and Terraform configuration for AWS infrastructure. Review environment variables, IAM permissions, networking, resource costs, and database connectivity before deploying to AWS.
+The repository also includes Kubernetes manifests and Terraform configuration for AWS infrastructure. The Terraform and Kubernetes files were written for AWS (EKS, RDS, ECR) but are not currently deployed; the project runs locally with Docker Compose. Review environment variables, IAM permissions, networking, costs, and database connectivity before deploying to AWS.
 
 ## Security
 
@@ -197,8 +197,21 @@ The repository also includes Kubernetes manifests and Terraform configuration fo
 
 ## Monitoring
 
-Prometheus and Grafana are potential future enhancements and are not documented as implemented.
+Prometheus and Grafana run as part of the Docker Compose stack.
+
+| Tool | URL | Notes |
+|---|---|---|
+| Prometheus | http://localhost:9091 | Scrapes `/actuator/prometheus` on all 7 services every 15s |
+| Grafana | http://localhost:3000 | Login as `admin` with `GRAFANA_ADMIN_PASSWORD` from your local `.env` |
+
+Grafana uses the Prometheus data source `http://prometheus:9090`. Import dashboard ID `4701` (JVM Micrometer) for JVM memory, CPU, and HTTP metrics.
+
+Only the Actuator `health`, `info` and `prometheus` endpoints are public; all other endpoints on secured services still require authentication.
 
 ## Project Status
 
-The seven services have passed their Maven build/test command, the local Docker Compose stack is running, and an end-to-end order has been verified as `CONFIRMED`. Continue validating inventory consistency, notification behavior, and failure handling before considering the system production-ready.
+- All seven services build, pass their unit tests, and run in Docker Compose.
+- Order flow verified end to end: Order Service -> Kafka `order-created` -> Payment and Inventory -> result events -> order status `CONFIRMED`.
+- Payment is simulated: orders with a missing user or a non-positive amount are declined (`FAILED`) and the order is cancelled. Inventory rejects missing stock, insufficient stock, and invalid quantities, and handles duplicate events.
+- Prometheus and Grafana monitoring are working locally (7 of 7 targets up).
+- AWS deployment (Terraform/EKS/RDS) is configured but not deployed.
