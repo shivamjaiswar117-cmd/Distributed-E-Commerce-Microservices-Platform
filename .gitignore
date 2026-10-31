@@ -58,3 +58,5 @@ trust-policy.json
 order.json
 pods-status.txt
 project-structure.txt
+
+*.bak
