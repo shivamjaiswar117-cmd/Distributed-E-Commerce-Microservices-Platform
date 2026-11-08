@@ -7,7 +7,7 @@ COPY mvnw .
 RUN chmod +x mvnw
 COPY src ./src
 ENV MAVEN_OPTS="-Djava.net.preferIPv4Stack=true"
-RUN ./mvnw clean package -DskipTests
+RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -Dmaven.wagon.http.retryHandler.count=5 clean package -DskipTests
 
 # Stage 2: Run the application
 FROM eclipse-temurin:21-jre

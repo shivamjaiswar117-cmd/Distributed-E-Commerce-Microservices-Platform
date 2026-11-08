@@ -16,24 +16,26 @@ public class UserService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
-    
+
     public java.util.List<User> getAllUsers() {
-    return userRepository.findAll();
-}
+        return userRepository.findAll();
+    }
+
+    public boolean emailExists(String email) {
+        return userRepository.findByEmail(email).isPresent();
+    }
 
     public User registerUser(User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
+    public Optional<User> authenticate(String email, String rawPassword) {
+        return userRepository.findByEmail(email)
+                .filter(user -> passwordEncoder.matches(rawPassword, user.getPassword()));
+    }
+
     public boolean login(String email, String rawPassword) {
-        Optional<User> userOpt = userRepository.findByEmail(email);
-
-        if (userOpt.isEmpty()) {
-            return false;
-        }
-
-        User user = userOpt.get();
-        return passwordEncoder.matches(rawPassword, user.getPassword());
+        return authenticate(email, rawPassword).isPresent();
     }
 }

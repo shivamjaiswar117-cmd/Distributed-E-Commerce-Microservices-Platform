@@ -1,9 +1,9 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
+import AuthPanel from './Auth.jsx'
 
 const API = '/api'
-const USER_ID = 1
 
 const money = amount =>
   new Intl.NumberFormat('en-IN', {
@@ -49,6 +49,28 @@ function App() {
   const [notice, setNotice] = useState('')
   const [loading, setLoading] = useState(true)
   const [checkingOut, setCheckingOut] = useState(false)
+  const [showAuth, setShowAuth] = useState(false)
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('rushcart_user'))
+    } catch {
+      return null
+    }
+  })
+
+  function handleLogin(auth) {
+    localStorage.setItem('rushcart_user', JSON.stringify(auth))
+    setUser(auth)
+    setShowAuth(false)
+    setNotice(`Welcome, ${auth.fullName}`)
+  }
+
+  function logout() {
+    localStorage.removeItem('rushcart_user')
+    setUser(null)
+    setCart({})
+    setNotice('You have been logged out')
+  }
 
   useEffect(() => {
     async function loadProducts() {
@@ -138,6 +160,12 @@ function App() {
   async function checkout() {
     if (!cartItems.length || checkingOut) return
 
+    if (!user) {
+      setShowAuth(true)
+      setNotice('Please log in to place your order')
+      return
+    }
+
     setCheckingOut(true)
     setNotice('')
 
@@ -148,7 +176,7 @@ function App() {
         const quantity = cart[product.id]
 
         const order = {
-          userId: USER_ID,
+          userId: user.id,
           productId: product.id,
           quantity,
           totalPrice: Number((product.price * quantity).toFixed(2)),
@@ -211,6 +239,15 @@ function App() {
         <button className="cart-button" onClick={() => setShowCart(!showCart)}>
           <span>♧</span> Cart <span className="cart-count">{cartCount}</span>
         </button>
+      {user ? (
+          <button className="cart-button" onClick={logout}>
+            {user.fullName} - Logout
+          </button>
+        ) : (
+          <button className="cart-button" onClick={() => setShowAuth(true)}>
+            Login
+          </button>
+        )}
       </header>
 
       <main>
@@ -431,6 +468,10 @@ function App() {
         <p>Everyday essentials, thoughtfully chosen.</p>
         <span>Built with a distributed microservices architecture.</span>
       </footer>
+
+      {showAuth && !user && (
+        <AuthPanel onLogin={handleLogin} onClose={() => setShowAuth(false)} />
+      )}
 
       {notice && (
         <div className="toast" role="status">
